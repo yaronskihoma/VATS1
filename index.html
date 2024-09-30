@@ -85,8 +85,10 @@
     <button id="allowCameraBtn">Allow Camera</button>
   </div>
 
+  <!-- Corrected script references -->
   <script src="https://sdk.morphcast.com/mphtools/v1.1/mphtools.js" data-config="cameraPrivacyPopup, compatibilityUI, compatibilityAutoCheck"></script>
   <script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
+  <script src="https://sdk.morphcast.com/emotion-statistics/v1.0-beta/script.js"></script> <!-- Added missing script for MorphCastStatistics -->
 
   <script>
     let trackingData = [];
@@ -150,7 +152,7 @@
     });
 
     CY.loader()
-      .licenseKey("your-license-key")
+      .licenseKey("sk9bebf5467e79a53a382ee56f1293c7e03b406b94f0af")
       .addModule(CY.modules().FACE_AROUSAL_VALENCE.name, { smoothness: 0.70 })
       .addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.40 })
       .addModule(CY.modules().FACE_ATTENTION.name, { smoothness: 0.83 })
@@ -167,7 +169,7 @@
       videoPlayer.style.display = 'block'; // Show the video
       if (morphcastInstance) {
         await morphcastInstance.start();
-        await statisticsUploader.start(); // Fixed incomplete function call
+        await statisticsUploader.start(); // Corrected function call
       }
 
       // Open video in full-screen mode
