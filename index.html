@@ -150,7 +150,7 @@
     });
 
     CY.loader()
-      .licenseKey("sk9bebf5467e79a53a382ee56f1293c7e03b406b94f0af")
+      .licenseKey("your-license-key")
       .addModule(CY.modules().FACE_AROUSAL_VALENCE.name, { smoothness: 0.70 })
       .addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.40 })
       .addModule(CY.modules().FACE_ATTENTION.name, { smoothness: 0.83 })
@@ -167,9 +167,7 @@
       videoPlayer.style.display = 'block'; // Show the video
       if (morphcastInstance) {
         await morphcastInstance.start();
-        await statisticsUploader.start
-
-();
+        await statisticsUploader.start(); // Fixed incomplete function call
       }
 
       // Open video in full-screen mode
@@ -194,8 +192,47 @@
         // Exit full screen after video ends
         exitFullscreen();
 
-    // Collect data from all relevant MorphCast events
+        // Show the "Send to Google Sheets" button
+        overlay.style.display = 'block';
+        popup.style.display = 'block';
+      };
+    });
 
+    function exitFullscreen() {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) { // Firefox
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) { // IE/Edge
+        document.msExitFullscreen();
+      }
+    }
+
+    // Send tracking data to Google Sheets
+    async function sendToGoogleSheets() {
+      const deviceDetails = getDeviceDetails();
+      const response = await fetch('https://script.google.com/macros/s/AKfycbxLbE9I_DPOd2UpE-rQP2blGIg2rZYZubQCaUUBos5a2MfW07eyZ7qSi_ktgcHT2BM/exec', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ trackingData, deviceDetails })
+      });
+
+      const result = await response.json();
+      if (result.result === 'success') {
+        alert('Data successfully sent to Google Sheets!');
+      } else {
+        alert('Error sending data to Google Sheets: ' + result.error);
+      }
+    }
+
+    // Send data to Google Sheets when "Step 2" button is clicked
+    sendToGoogleSheetsBtn.addEventListener('click', sendToGoogleSheets);
+
+    // Collect data from all relevant MorphCast events
     // FACE_AROUSAL_VALENCE
     window.addEventListener(CY.modules().FACE_AROUSAL_VALENCE.eventName, (evt) => {
       let frameData = {
@@ -265,45 +302,6 @@
       console.log(frameData);
     });
 
-        // Show the "Send to Google Sheets" button
-        overlay.style.display = 'block';
-        popup.style.display = 'block';
-      };
-    });
-
-    function exitFullscreen() {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      } else if (document.mozCancelFullScreen) { // Firefox
-        document.mozCancelFullScreen();
-      } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
-        document.webkitExitFullscreen();
-      } else if (document.msExitFullscreen) { // IE/Edge
-        document.msExitFullscreen();
-      }
-    }
-
-    // Send tracking data to Google Sheets
-    async function sendToGoogleSheets() {
-      const deviceDetails = getDeviceDetails();
-      const response = await fetch('https://script.google.com/macros/s/AKfycbxLbE9I_DPOd2UpE-rQP2blGIg2rZYZubQCaUUBos5a2MfW07eyZ7qSi_ktgcHT2BM/exec', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ trackingData, deviceDetails })
-      });
-
-      const result = await response.json();
-      if (result.result === 'success') {
-        alert('Data successfully sent to Google Sheets!');
-      } else {
-        alert('Error sending data to Google Sheets: ' + result.error);
-      }
-    }
-
-    // Send data to Google Sheets when "Step 2" button is clicked
-    sendToGoogleSheetsBtn.addEventListener('click', sendToGoogleSheets);
   </script>
 
 </body>
