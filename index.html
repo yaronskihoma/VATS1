@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MorphCast Video Emotion Tracking</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 0;
+    }
+    video {
+      width: 100%;
+      max-width: 600px;
+      height: auto;
+      margin-top: 20px;
+      display: none;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+      margin: 10px;
+    }
+    #buttonContainer {
+      margin: 20px 0;
+    }
+    #popup, #cameraPermissionPopup {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      border: 2px solid #4CAF50;
+      padding: 20px;
+      z-index: 1000;
+    }
+    #overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Emotion Tracking Video</h1>
+
+  <div id="buttonContainer">
+    <button id="watchBtn" style="display: none;">Step 1: Watch Video</button>
+  </div>
+
+  <div id="videoContainer">
+    <video id="videoPlayer" preload="auto">
+      <source src="https://assets.homa-cloud.com/clicqla3j02wfyq01nkyf7621/853d663c-39ba-4755-bf72-1da193d2e2d4/HIR_C67_V4_WW_VID_1080x1920_33s.mp4" type="video/mp4">
+      Your browser does not support the video tag.
+    </video>
+  </div>
+
+  <div id="overlay"></div>
+
+  <!-- Popup for emotion tracking completed -->
+  <div id="popup">
+    <h2>Emotion tracking is finished!</h2>
+    <button id="sendToGoogleSheetsBtn">Step 2: Send to Google Sheets</button>
+  </div>
+
+  <!-- Popup for Camera Permission -->
+  <div id="cameraPermissionPopup">
+    <h2>Allow Camera Access</h2>
+    <p>This experience requires access to your camera to track your emotions while watching the video.</p>
+    <p><a href="https://YOUR_DOMAIN/privacy-policy" target="_blank">Read our Privacy Policy</a></p>
+    <button id="allowCameraBtn">Allow Camera</button>
+  </div>
+
+  <script src="https://sdk.morphcast.com/mphtools/v1.1/mphtools.js" data-config="cameraPrivacyPopup, compatibilityUI, compatibilityAutoCheck"></script>
+  <script src="https://ai-sdk.morphcast.com/v1.16/ai-sdk.js"></script>
+
+  <script>
+    let trackingData = [];
+    let morphcastInstance = null;
+    const watchBtn = document.getElementById('watchBtn');
+    const videoPlayer = document.getElementById('videoPlayer');
+    const popup = document.getElementById('popup');
+    const overlay = document.getElementById('overlay');
+    const sendToGoogleSheetsBtn = document.getElementById('sendToGoogleSheetsBtn');
+    const cameraPermissionPopup = document.getElementById('cameraPermissionPopup');
+    const allowCameraBtn = document.getElementById('allowCameraBtn');
+
+    const statsConfig = {
+      sendDatainterval: 5000,
+      tickInterval: 1000,
+      stopAfter: 7200000,
+      licenseKey: "your-license-key"
+    };
+
+    const statisticsUploader = new MorphCastStatistics.StatisticsUploader(statsConfig);
+
+    // Get device and browser details
+    function getDeviceDetails() {
+      const deviceDetails = {
+        browser: navigator.userAgent,
+        platform: navigator.platform,
+        date: new Intl.DateTimeFormat('en-GB', {
+          timeZone: 'Europe/Warsaw',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }).format(new Date())
+      };
+      return deviceDetails;
+    }
+
+    // Camera permission logic
+    function requestCameraAccess() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(() => {
+          cameraPermissionPopup.style.display = 'none';
+          overlay.style.display = 'none';
+          watchBtn.style.display = 'inline-block';
+        })
+        .catch(() => {
+          alert('Camera access denied. You cannot proceed without allowing camera access.');
+        });
+    }
+
+    // Show camera permission popup on page load
+    window.addEventListener('load', () => {
+      overlay.style.display = 'block';
+      cameraPermissionPopup.style.display = 'block';
+    });
+
+    allowCameraBtn.addEventListener('click', () => {
+      requestCameraAccess();
+    });
+
+    CY.loader()
+      .licenseKey("sk9bebf5467e79a53a382ee56f1293c7e03b406b94f0af")
+      .addModule(CY.modules().FACE_AROUSAL_VALENCE.name, { smoothness: 0.70 })
+      .addModule(CY.modules().FACE_EMOTION.name, { smoothness: 0.40 })
+      .addModule(CY.modules().FACE_ATTENTION.name, { smoothness: 0.83 })
+      .addModule(CY.modules().FACE_DETECTOR.name, { maxInputFrameSize: 320, smoothness: 0.83 })
+      .addModule(CY.modules().ALARM_NO_FACE.name, { timeWindowMs: 10000, initialToleranceMs: 7000, threshold: 0.75 })
+      .addModule(CY.modules().DATA_AGGREGATOR.name, { initialWaitMs: 2000, periodMs: 1000 })
+      .load()
+      .then(({ start, stop }) => {
+        morphcastInstance = { start, stop };
+      });
+
+    // Step 1: Watch Video
+    watchBtn.addEventListener('click', async () => {
+      videoPlayer.style.display = 'block'; // Show the video
+      if (morphcastInstance) {
+        await morphcastInstance.start();
+        await statisticsUploader.start
+
+();
+      }
+
+      // Open video in full-screen mode
+      if (videoPlayer.requestFullscreen) {
+        videoPlayer.requestFullscreen();
+      } else if (videoPlayer.mozRequestFullScreen) {
+        videoPlayer.mozRequestFullScreen(); // Firefox
+      } else if (videoPlayer.webkitRequestFullscreen) {
+        videoPlayer.webkitRequestFullscreen(); // Chrome, Safari, and Opera
+      } else if (videoPlayer.msRequestFullscreen) {
+        videoPlayer.msRequestFullscreen(); // IE/Edge
+      }
+
+      videoPlayer.play();
+
+      videoPlayer.onended = async () => {
+        if (morphcastInstance) {
+          await statisticsUploader.stop();
+          await morphcastInstance.stop();
+        }
+
+        // Exit full screen after video ends
+        exitFullscreen();
+
+    // Collect data from all relevant MorphCast events
+
+    // FACE_AROUSAL_VALENCE
+    window.addEventListener(CY.modules().FACE_AROUSAL_VALENCE.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'FACE_AROUSAL_VALENCE',
+        valence: evt.detail.output.valence,
+        arousal: evt.detail.output.arousal
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // FACE_EMOTION
+    window.addEventListener(CY.modules().FACE_EMOTION.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'FACE_EMOTION',
+        dominantEmotion: evt.detail.output.dominantEmotion,
+        emotions: evt.detail.output.emotion
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // FACE_ATTENTION
+    window.addEventListener(CY.modules().FACE_ATTENTION.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'FACE_ATTENTION',
+        attention: evt.detail.output.attention
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // FACE_DETECTOR
+    window.addEventListener(CY.modules().FACE_DETECTOR.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'FACE_DETECTOR',
+        totalFaces: evt.detail.totalFaces,
+        status: evt.detail.status
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // ALARM_NO_FACE
+    window.addEventListener(CY.modules().ALARM_NO_FACE.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'ALARM_NO_FACE',
+        alarmTriggered: true
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+    // DATA_AGGREGATOR
+    window.addEventListener(CY.modules().DATA_AGGREGATOR.eventName, (evt) => {
+      let frameData = {
+        mediaTime: videoPlayer.currentTime,
+        type: 'DATA_AGGREGATOR',
+        aggregatedData: evt.detail.output
+      };
+      trackingData.push(frameData);
+      console.log(frameData);
+    });
+
+        // Show the "Send to Google Sheets" button
+        overlay.style.display = 'block';
+        popup.style.display = 'block';
+      };
+    });
+
+    function exitFullscreen() {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (document.mozCancelFullScreen) { // Firefox
+        document.mozCancelFullScreen();
+      } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
+        document.webkitExitFullscreen();
+      } else if (document.msExitFullscreen) { // IE/Edge
+        document.msExitFullscreen();
+      }
+    }
+
+    // Send tracking data to Google Sheets
+    async function sendToGoogleSheets() {
+      const deviceDetails = getDeviceDetails();
+      const response = await fetch('https://script.google.com/macros/s/AKfycbxLbE9I_DPOd2UpE-rQP2blGIg2rZYZubQCaUUBos5a2MfW07eyZ7qSi_ktgcHT2BM/exec', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ trackingData, deviceDetails })
+      });
+
+      const result = await response.json();
+      if (result.result === 'success') {
+        alert('Data successfully sent to Google Sheets!');
+      } else {
+        alert('Error sending data to Google Sheets: ' + result.error);
+      }
+    }
+
+    // Send data to Google Sheets when "Step 2" button is clicked
+    sendToGoogleSheetsBtn.addEventListener('click', sendToGoogleSheets);
+  </script>
+
+</body>
+</html>
